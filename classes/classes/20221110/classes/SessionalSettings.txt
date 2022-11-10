@@ -1,0 +1,518 @@
+<?php
+    include $cdn . '/includes/check.txt';
+    class SessionalSettings{
+        private $user;
+        public function __construct(){
+            $this->user = new User;
+        }
+
+        public function mail($to, $subject, $message){
+            if(sendMail($to, $subject, $message)){
+                return $this;
+            }
+            return false;
+        }
+
+        public function changeCurrentSession($session, $term){
+            if($this->user->truncate('current_academic_session')){
+                $this->user->insert('current_academic_session', [
+                    'session' => $session,
+                    'term' => $term
+                ]);
+                return $this;
+            }
+            return false;
+        }
+
+        public function updateSessionTerm($session, $term){
+            if($this->user->find('academic_sessions', ['session', '=', $session])){
+                $id = $this->user->data()->id;
+                $terms = json_decode($this->user->data()->term, true);
+                if(!array_key_exists($term, $terms)){
+                    $terms[$term] = [];
+                    $terms = json_encode($terms);
+                    $this->user->update('academic_sessions', ['id', '=', $id], [
+                        'term' => $terms
+                    ]);
+                    return $this;
+                } else {
+                    return false;
+                }
+            } else {
+                $terms[$term] = [];
+                $terms = json_encode($terms);
+                $this->user->insert('academic_sessions', [
+                    'session' => $session,
+                    'term' => $terms
+                ]);
+                return $this;
+            }
+            return false;
+        }
+
+        public function classRecord($session, $term){
+            if($this->user->selectAll('current_academic_session')){
+                $academicSession = $this->user->data()->session;
+                $term = $this->user->data()->term;
+
+                if($this->user->find('students', ['admissionStatus', '=', 'admitted'])){
+                    foreach($this->user->dataAll() as $student){
+                        $regNo = $student->regNo;
+                        $currentClass = $student->class;
+                        if($this->user->find('class_record', ['regNo', '=', $regNo])){
+                            $id = $this->user->data()->id;
+                            $classRecord = json_decode($this->user->data()->classRecord, true);
+                            if(!isset($classRecord[$session])){
+                                $classRecord[$session] = [];
+                            }
+                            if(!isset($classRecord[$session][$term])){
+                                $classRecord[$session][$term] = [];
+                            }
+                            $classRecord[$session][$term] = $currentClass;
+                            $classRecord = json_encode($classRecord);
+                            $classRecord = str_replace('\\', '', $classRecord);
+                            $this->user->update('class_record', ['id', '=', $id], [
+                                'classRecord' => $classRecord
+                            ]);
+                        } else {
+                            $classRecord = [];
+                            $classRecord[$session][$term] = $currentClass;
+                            $classRecord = json_encode($classRecord);
+                            $classRecord = str_replace('\\', '', $classRecord);
+                            $insert = $this->user->insert('class_record', [
+                                'regNo' => $regNo,
+                                'classRecord' => $classRecord
+                            ]);
+                        }
+                    }
+                }
+            }
+            return $this; 
+        }
+
+        public function classStudents($session, $term){
+            if($this->user->selectAll('current_academic_session')){
+                $currentSession = $this->user->data()->session;
+                $currentTerm = $this->user->data()->term;
+
+                if(!$this->user->findAnd('class_history', ['session', '=', $currentSession], ['term', '=', $currentTerm])){
+                    $insert = $this->user->insert('class_history', [
+                        'session' => $currentSession,
+                        'term' => $currentTerm
+                    ]);
+                }
+
+                if($this->user->selectAll('classes')){
+                    $classStudents = [];
+                    foreach($this->user->dataAll() as $data){
+                        $classStudents[$data->class] = [];
+                        if($this->user->findAnd('students', ['class', '=', $data->class], ['admissionStatus', '=', 'admitted'])){
+                            foreach($this->user->dataAll() as $student){
+                                $classStudents[$data->class][$student->regNo] = [
+                                    'regNo' => $student->regNo,
+                                    'firstname' => $student->firstname,
+                                    'middlename' => $student->middlename,
+                                    'lastname' => $student->lastname
+                                ];
+                            }
+                            
+                        }
+                    }
+                    $classStudents = json_encode($classStudents);
+                    $classStudents = str_replace('\\', '', $classStudents);
+
+                    if($this->user->findAnd('class_history', ['session', '=', $currentSession], ['term', '=', $currentTerm])){
+                        $id = $this->user->data()->id;
+                        $update = $this->user->update('class_history', ['id', '=', $id], [
+                            'classStudents' => $classStudents
+                        ]);
+                        return $this;
+                    }
+                }
+            }
+            return false;
+        }
+
+        public function classCA($session, $term){
+            if($this->user->selectAll('current_academic_session')){
+                $currentSession = $this->user->data()->session;
+                $currentTerm = $this->user->data()->term;
+                if(!$this->user->findAnd('class_history', ['session', '=', $currentSession], ['term', '=', $currentTerm])){
+                    $insert = $this->user->insert('class_history', [
+                        'session' => $currentSession,
+                        'term' => $currentTerm
+                    ]);
+                }
+                
+                $classCA = [];
+                if($this->user->selectAll('classes')){
+                    foreach($this->user->dataAll() as $data){
+                        $classCA[$data->class] = [];
+                        if($this->user->find('continuous_assessment', ['class', '=', $data->class])){
+                            foreach($this->user->dataAll() as $studentCA){
+                                $regNo = $studentCA->regNo;
+                                $firstname = $studentCA->firstname;
+                                $middlename = $studentCA->middlename;
+                                $lastname = $studentCA->lastname;
+                                $ca = json_decode($studentCA->continuousAssessment, true);
+                                $classCA[$data->class][$regNo] = [
+                                    'regNo' => $regNo,
+                                    'firstname' => $firstname,
+                                    'middlename' => $middlename,
+                                    'lastname' => $lastname,
+                                    'ca' => $ca
+                                ];
+                            }
+                        }
+                    }
+                    $classCA = json_encode($classCA);
+                    $classCA = str_replace('\\', '', $classCA);
+                    if($this->user->findAnd('class_history', ['session', '=', $currentSession], ['term', '=', $currentTerm])){
+                        $id = $this->user->data()->id;
+                        $this->user->update('class_history', ['id', '=', $id], [
+                            'classAssessment' => $classCA
+                        ]);
+                        return $this;
+                    }
+                }
+
+            }
+            return false;
+        }
+
+        public function promoteStudents(){
+            if($this->user->find('students', ['admissionStatus', '=', 'admitted'])){
+                foreach($this->user->dataAll() as $student){
+                    $currentClass = $student->class;
+                    if($this->user->find('classes', ['class', '=', $currentClass])){
+                        $nextClass = $this->user->data()->nextClass;
+                        if($this->user->find('classes', ['class', '=', $nextClass])){
+                            $nextClassSubjects = $this->user->data()->classSubjects;
+                            $this->user->update('students', ['id', '=', $student->id], [
+                                'class' => $nextClass,
+                                'lastClass' => $currentClass,
+                                'subjects' => $nextClassSubjects
+                            ]);
+                        } else {
+                            $nextClassSubjects = '';
+                            $this->user->update('students', ['id', '=', $student->id], [
+                                'class' => $nextClass,
+                                'lastClass' => $currentClass,
+                                'subjects' => ''
+                            ]);   
+                        }
+                    }
+                }
+                return $this;
+            }
+            return false;
+        }
+
+
+        public function setFees($session, $term){
+            if($this->user->selectCount('fees', ['id', '>', '0'])){
+                $count = $this->user->data()->count;
+                if(!$this->user->findAnd('fees', ['session', '=', $session], ['term', '=', $term])){
+                    if($this->user->find('fees', ['id', '=', $count])){
+                        $lastTermFees = $this->user->data()->fees;
+                        $this->user->insert('fees', [
+                            'session' => $session,
+                            'term' => $term,
+                            'fees' => $lastTermFees
+                        ]);
+                        return $this;
+                    }
+                    return false;
+                } 
+                return $this;
+            }
+            return false;
+        }
+
+
+        public function balanceBroughtForward($newSession, $newTerm, $currentSession, $currentTerm){
+            $studentObject = new Student;
+            if($this->user->find('students', ['admissionStatus', '=', 'admitted'])){
+                foreach($this->user->dataAll() as $student){
+                    $regNo = $student->regNo;
+                    $balance = 0;
+                    if($paymentRecord = $studentObject->paymentRecord($regNo, $currentSession, $currentTerm)){
+                        foreach($paymentRecord as $fee => $details){
+                            $balance += $details['balance'];
+                        }
+                    }
+                    if($balance != 0){
+                        if($this->user->find('balance_brought_forward', ['regNo', '=', $regNo])){
+                            $rowId = $this->user->data()->id;
+                            $record = json_decode($this->user->data()->balance, true);
+                            if(!isset($record[$newSession][$newTerm])){
+                                $record[$newSession][$newTerm] = null;
+                            }
+                            $record[$newSession][$newTerm] = $balance;
+                            $this->user->update('balance_brought_forward', ['id', '=', $rowId], [
+                                'balance' => json_encode($record)
+                            ]);
+                        } else {
+                            $record = [];
+                            $record[$newSession] = [];
+                            $record[$newSession][$newTerm] = $balance;
+                            $this->user->insert('balance_brought_forward', [
+                                'regNo' => $regNo,
+                                'balance' => json_encode($record)
+                            ]);
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+
+        public function resetCA(){
+            if($this->user->selectAll('continuous_assessment')){
+                $this->user->truncate('previous_continuous_assessment');
+                foreach($this->user->dataAll() as $data){
+                    $this->user->insert('previous_continuous_assessment', [
+                        'regNo' => $data->regNo,
+                        'firstname' => $data->firstname,
+                        'middlename' => $data->middlename,
+                        'lastname' => $data->lastname,
+                        'class' => $data->class,
+                        'daysPresent' => $data->daysPresent,
+                        'daysSchoolOpened' => $data->daysSchoolOpened,
+                        'continuousAssessment' => $data->continuousAssessment,
+                        'attributes' => $data->attributes
+                    ]);
+                }
+            }
+            if($this->user->find('students', ['admissionStatus', '=', 'admitted'])){
+                $student = new Student;
+                
+                $attributes = json_encode($student->getAttributes());
+                
+                if($this->user->truncate('continuous_assessment')){
+                    foreach($this->user->dataAll() as $data){
+                        if($subjects = json_decode($data->subjects, true)){
+                            foreach($subjects as $subject => $ca){
+                                $subjects[$subject] = [
+                                    'ca 1' => 0,
+                                    'ca 2' => 0,
+                                    'exam' => 0,
+                                    'total' => 0,
+                                    'highest' => 0,
+                                    'lowest' => 0,
+                                    'subjectPosition' => 0,
+                                ];
+                            }
+                            $subjects = json_encode($subjects);
+                            
+                            $this->user->insert('continuous_assessment', [
+                                'regNo' => $data->regNo,
+                                'firstname' => $data->firstname,
+                                'middlename' => $data->middlename,
+                                'lastname' => $data->lastname,
+                                'class' => $data->class,
+                                'continuousAssessment' => $subjects,
+                                'attributes' => $attributes
+                            ]);
+                        }
+                    }
+                }
+            }
+            return $this;
+        }
+
+
+
+        
+        public function releaseResult(){
+            if($this->user->selectAll('current_academic_session')){
+                $academicSession = $this->user->data()->session;
+                $term = $this->user->data()->term;
+                $daysSchoolOpened = $this->user->data()->daysSchoolOpened;
+                $nextTermBegins = $this->user->data()->nextTermBegins;
+
+                if($classes = $this->user->getList('classes', 'class', 'id', 'ASC')){
+                    foreach($classes as $class){
+                        if($this->user->selectCount('continuous_assessment', ['class', '=', $class])){
+                            $numInClass = $this->user->data()->count;
+                        }
+                        if($this->user->find('continuous_assessment', ['class', '=', $class])){
+                            $classPercentage = [];
+                            foreach($this->user->dataAll() as $student){
+                                $result = json_decode($student->continuousAssessment, true);
+                                $studentTotal = 0;
+                                $obtainableScore = 0;
+                                foreach($result as $subject => $score){
+                                    $studentTotal += $score['total'];
+                                    $obtainableScore += 100; 
+                                }
+                                $studentPercentage = (($studentTotal / $obtainableScore) * 100);
+                                $studentPercentage = round($studentPercentage, 3);
+                                $classPercentage[] = $studentPercentage;
+                                rsort($classPercentage);
+                            }
+                            
+
+                            foreach($this->user->dataAll() as $student){
+                                $termResult = [];
+                                $termContinuousAssessment = json_decode($student->continuousAssessment, true);
+                                $termAttributes = json_decode($student->attributes, true);
+                                $regNo = $student->regNo;
+                                $firstname = $student->firstname;
+                                $middlename = $student->middlename;
+                                $lastname = $student->lastname;
+                                $daysPresent = $student->daysPresent;
+
+                                $studentTotalScore = 0;
+                                $obtainableScore = 0;
+                                foreach($termContinuousAssessment as $subject => $score){
+                                    $studentTotalScore += $score['total'];
+                                    $obtainableScore += 100;
+                                }
+                                $studentPercentage = (($studentTotalScore / $obtainableScore) * 100);
+                                $studentPercentage = round($studentPercentage, 3);
+
+                                $termResult[$academicSession] = [
+                                    $term => [
+                                        'class' => $class,
+                                        'term' => $term,
+                                        'position' => (array_search($studentPercentage, $classPercentage) + 1),
+                                        'percentageScored' => $studentPercentage,
+                                        'daysPresent' => $daysPresent,
+                                        'daysSchoolOpened' => $daysSchoolOpened,
+                                        'numberInClass' => $numInClass,
+                                        'nextTermBegins' => $nextTermBegins,
+                                        'result' => $termContinuousAssessment,
+                                        'attributes' => $termAttributes
+                                    ]
+                                ];
+                                
+                                
+                                if($this->user->find('results', ['regNo', '=', $regNo])){
+                                    $results = json_decode($this->user->data()->results, true); 
+                                    $results[$academicSession][$term] = $termResult[$academicSession][$term];
+                                    $results = json_encode($results);
+                                    $results = str_replace('\\', '', $results);
+                                    $update = $this->user->update('results', ['id', '=', $this->user->data()->id], [
+                                        'results' => $results
+                                    ]);
+                                } else {
+                                    $results = json_encode($termResult);
+                                    $results = str_replace('\\', '', $results);                                 
+                                    $insert = $this->user->insert('results', [
+                                        'regNo' => $regNo,
+                                        'results' => $results
+                                    ]);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    return false;
+                }
+                return $this;
+            } else {
+                return false;
+            }
+        }
+
+
+
+
+        public function startNewTerm($newTerm){
+            if($this->user->selectAll('current_academic_session')){
+                $currentSession = $this->user->data()->session;
+                $currentTerm = $this->user->data()->term;
+                if($this->updateSessionTerm($currentSession, $newTerm)){
+                    if($this->classRecord($currentSession, $currentTerm)){
+                        if($this->classStudents($currentSession, $currentTerm)){
+                            if($this->classCA($currentSession, $currentTerm)){
+                                if($this->balanceBroughtForward($currentSession, $newTerm, $currentSession, $currentTerm)){
+                                    if($this->changeCurrentSession($currentSession, $newTerm)){
+                                        if($this->setFees($currentSession, $newTerm)){
+                                            if($this->resetCA()){
+                                                return $this;
+                                            } else {
+                                                return false;
+                                            }
+                                        } else {
+                                            return false;
+                                        }
+                                    } else {
+                                        return false;
+                                    }
+                                } else {
+                                    return false;
+                                }
+                            } else {
+                                return false;
+                            }
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+            return false;
+        }
+
+
+
+        public function startNewSession($newSession){
+            $newTerm = 'first term';
+            if($this->user->selectAll('current_academic_session')){
+                $currentSession = $this->user->data()->session;
+                $currentTerm = $this->user->data()->term;
+                if($this->updateSessionTerm($newSession, $newTerm)){
+                    if($this->classRecord($currentSession, $currentTerm)){
+                        if($this->classStudents($currentSession, $currentTerm)){
+                            if($this->classCA($currentSession, $currentTerm)){
+                                if($this->balanceBroughtForward($newSession, $newTerm, $currentSession, $currentTerm)){
+                                    if($this->changeCurrentSession($newSession, $newTerm)){
+                                        if($this->promoteStudents()){
+                                            if($this->setFees($newSession, $newTerm)){
+                                                if($this->resetCA()){
+                                                    return $this;
+                                                } else {
+                                                    return false;
+                                                }
+                                            } else {
+                                                return false;
+                                            }
+                                        } else {
+                                            return false;
+                                        }
+                                    } else {
+                                        return false;
+                                    }
+                                } else {
+                                    return false;
+                                }
+                            } else {
+                                return false;
+                            }
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+
+
+
+    }

@@ -1,0 +1,40 @@
+<?php
+    include $cdn . '/includes/check.txt';
+    class Session{
+        // Method to set a session
+        public static function set($name, $value){
+            return $_SESSION[$name] = $value;
+        }
+
+        // Method to check if a session exists
+        public static function exists($name){
+            return isset($_SESSION[$name]) ? true : false;
+        }
+
+        // Method to get the value of a session
+        public static function get($name){
+            if(self::exists($name)){
+                return $_SESSION[$name];
+            }
+            return false;
+        }
+
+        // Method to delete a session
+        public static function delete($name){
+            if(self::exists($name)){
+                unset($_SESSION[$name]);
+            }
+        }
+
+        // Method to create a flash message
+        public static function flash($name, $message = ''){
+            if(self::exists($name)){
+                $session = self::get($name);
+                unset($_SESSION[$name]);
+                return $session;
+            } else {
+                self::set($name, $message);
+            }   
+        }
+        
+    }

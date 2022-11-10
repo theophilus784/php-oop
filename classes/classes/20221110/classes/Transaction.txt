@@ -1,0 +1,32 @@
+<?php
+    include $cdn . '/includes/check.txt';
+    class Transaction{
+        private $user;
+        private $data;
+        public function __construct(){
+            $this->user = new User;
+        }
+
+
+        public function history($date){
+            if(is_array($date)){
+                $transaction = $this->user->findAnd('transaction_history', ['payment_date', '>=', $date['start']], ['payment_date', '<=', $date['end']]);
+            } else {
+                $transaction = $this->user->find('transaction_history', ['payment_date', '=', $date]);
+            }
+            if($transaction){
+                return $transaction;
+            }
+            return [];
+        }
+
+        public function studentPaymentHistory($studentId, $session, $term){
+            if($transaction = $this->user->findAnd('transaction_history', ['regNo', '=', $studentId], ['session', '=', $session], ['term', '=', $term])){
+                return  $transaction;
+            } else {
+                return [];
+            }
+        }
+
+
+    }

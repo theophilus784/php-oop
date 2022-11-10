@@ -1,0 +1,33 @@
+<?php
+    include $cdn . '/includes/check.txt';
+    class Cookie{
+        // Method to set the cookie
+        public static function set($name, $value, $expiry){
+            setcookie($name, $value, time() + $expiry, '/');
+        }
+
+        // Method to check if cookie exists
+        public static function exists($name){
+            // return (isset($_COOKIE[$name])) ? true : false;
+            if(isset($_COOKIE[$name])){
+                return true;
+            }
+            return false;
+        }
+
+        // Method to get the value of a cookie
+        public static function get($name){
+            if(self::exists($name)){
+                return $_COOKIE[$name];
+            }
+            return false;
+        }
+
+        // Method to delete a cookie
+        public static function delete($name){
+            if(self::exists($name)){
+                setcookie($name, '', time() - 1, '/');
+            }
+        }
+        
+    }

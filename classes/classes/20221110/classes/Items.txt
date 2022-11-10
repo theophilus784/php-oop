@@ -1,0 +1,69 @@
+<?php
+include $cdn . '/includes/check.txt';
+// Class to get the items from the database
+class Items{
+    private $user;
+    private $itemsPicturesFolder = 'pictures/itemsPictures/'; //folders where the pictures are saved
+    public function __construct(){
+        $this->user = new User; //creates an instance of the user class
+    }
+
+    // Method to get the items from the database
+    public function items($table = 'categories', $field = 'category', $itemField = 'itemCategory', $order = 'dateAdded', $direction = 'DESC', $limit = '6'){
+        //$table - table to get the list from
+        //$field  - is the column to get the list from
+        //$itemField - is the column to check in the items table and get the items and get the corresponding items from the results of the $field
+
+
+        // Get the lists of items using the 'getList' method and user the result to check the 'items' table for the items 
+        foreach($this->user->getList($table, $field) as $category){
+            // foreach item in the 'getList' result check the items table for the items
+            if($this->user->findOrderLimit('items', [$itemField, '=', $category], $order, $direction, $limit)){
+                echo "<div class = 'sub-category'>";
+                echo "<div class = 'category-name'>$category</div>";
+                echo "<div class = 'sub-items'>";
+                // displays the information of each item
+                foreach($this->user->dataAll() as $data){
+                    echo "<div class = 'item'>
+                            <form action = 'view.php' method = 'get' class = 'item-form'>
+                                <input type = 'hidden' name = 'itemName' value = ". sanitize($data->itemName) .">
+                                <button type = 'submit' name = 'itemId' class = 'btn-2' value = " . sanitize($data->itemUniqueId) .">
+                                    <span>".getPicture($data->itemUniqueId, $this->itemsPicturesFolder, 'Item Image', 'item-picture')."</span>
+                                    <div class = 'item-brand-name'>".sanitize($data->itemBrandName)."</div><br>
+                                    <span class = 'item-price'>&#8358 ".sanitize($data->itemPrice)."</span>
+                                </button>
+                            </form>
+                        </div>";
+                }
+                echo "</div>";
+                echo "<div><form action = 'category.php' method = 'get'><button type = 'submit' name = 'category' value = '".sanitize($category)."' class = 'btn-4'>Show more</button></form></div>";
+            echo "</div>";
+            }
+        }
+    }
+
+    // Method to get the related items from the database
+    public function relatedItems($table = 'items', $field = 'itemName', $value, $order = 'dateAdded', $direction = 'DESC', $limit = '4'){
+        // checks the items table for related items
+        if($this->user->findOrder('items', [$field, '=', $value], $order, $direction, $limit)){
+                echo "<div class = 'sub-category'>";
+                echo "<div class = 'category-name'>Related items</div>";
+                echo "<div class = 'sub-items'>";
+                // displays each item
+            foreach($this->user->dataAll() as $data){
+                echo "<div class = 'item'>
+                        <form action = 'view.php' class = 'item-form' method = 'get'>
+                          <input type = 'hidden' name = 'itemName' value = '".sanitize($data->itemName)."'>
+                          <button type = 'submit' name = 'itemId' class = 'btn-2' value = '".sanitize($data->itemUniqueId)."'>
+                                <span>".getPicture($data->itemUniqueId, $this->itemsPicturesFolder, 'Item Image', 'item-picture')."</span>
+                                <div class = 'item-brand-name-3'>".sanitize($data->itemBrandName)."</div><br>
+                                <span class = 'item-price'>&#8358 ".sanitize($data->itemPrice)."</span>
+                            </button>
+                        </form>
+                    </div>";
+            }
+            echo '</div>
+            </div>';
+        }
+    }
+}

@@ -1,0 +1,29 @@
+<?php
+    include $cdn . '/includes/check.txt';
+    class Input{
+        // Method to check if a form has been submitted
+        public static function exists($type = 'post'){
+            switch($type){
+                case 'post':
+                    return !empty($_POST) ? true : false;
+                break;
+                case 'get':
+                    return !empty($_GET) ? true : false;
+                break;
+                default: 
+                    return false;
+                break;
+            }
+        }
+
+        // Method to return the value of a form field
+        public static function name($name){
+            if(isset($_POST[$name])){
+                return trim($_POST[$name]);
+            } else if(isset($_GET[$name])) {
+                return trim($_GET[$name]);
+            } else {
+                return '';
+            }
+        }
+    }

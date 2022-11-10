@@ -1,0 +1,95 @@
+<?php
+    include $cdn . '/includes/check.txt';
+    Class Sms{
+        public function sendSms($to, $body){
+            $url = 'https://www.bulksmsnigeria.com/api/v1/sms/create';
+            $data = array(
+                'api_token' => 'Gi4DhMp2ekPaPP5FZbD2eaAzRtsTh4YwS1eI7ef5KF2q1QlB4m19WKdnuSEK', 
+                'from' => 'HERALD SCH', 
+                'to' => trim($to), 
+                'body' => trim($body), 
+                'dnd' => '2'
+            );
+
+            // use key 'http' even if you send the request to https://...
+            $options = array(
+                'http' => array(
+                    'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+                    'method'  => 'POST',
+                    'content' => http_build_query($data)
+                ),
+                "ssl"=>array(
+                    "verify_peer"=>false,
+                    "verify_peer_name"=>false,
+                )
+            );
+            $context  = stream_context_create($options);
+            $result = file_get_contents($url, false, $context);
+            if ($result === FALSE) {
+                return false;
+            }
+            return true;
+
+        }
+
+        public function studentRegNo($to, $regNo, $firstname){
+            $body = "Your child $firstname has been successfully registered, your Reg no is $regNo and your password is your surname in lower case. Thank You";
+            if($this->sendSms($to, $body)){
+                return true;
+            }
+            return false;
+        }
+
+        public function staffRegNo($to, $regNo){
+            $body = "Registration Successful, your Registration no is $regNo, please log in to you portal to complete your uploads";
+            if($this->sendSms($to, $body)){
+                return true;
+            }
+            return false;
+        }
+
+        public function resetPasswordOtp($to, $otp){
+            $body = "The OTP for resetting your password is $otp";
+            if($this->sendSms($to, $body)){
+                return true;
+            }
+            return false;
+        }
+
+        public function lessonReg($to, $numOfChild, $totalfee){
+            $body = "You have successfully registered your children for Big Uncle Lesson. The total fee for your $numOfChild child(ren) is $totalfee naira";
+            if($this->sendSms($to, $body)){
+                return true;
+            }
+            return false;
+        }
+
+        public function paymentAlert($to, $name, $session, $term, $amount, $paymentRecord){
+            $totalPaid = 0;
+            $totalBalance = 0;
+
+            foreach($paymentRecord as $fee => $status){
+                $totalPaid += $status['paid'];
+                $totalBalance += $status['balance'];
+            }
+            $totalfee = $totalPaid + $totalBalance;
+
+            $body = "Payment Alert\nName: $name\nSession: $session\nTerm: $term\nAmount: $totalFee\nPaid: $amount\nBalance: $totalBalance\nFor enquiries contact 08136772338.";
+            
+            if($this->sendSms($to, $body)){
+                return true;
+            }
+            return false;
+        }
+
+        public function bulksms($to, $body){
+            if($this->sendSms($to, $body)){
+                return true;
+            }
+            return false;
+        }
+
+    }
+
+    
+    

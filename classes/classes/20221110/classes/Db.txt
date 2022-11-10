@@ -1,0 +1,288 @@
+<?php
+    include $cdn . '/includes/check.txt';
+    // DB class that access the database
+    class Db{
+        private static $_instance;
+        private $_pdo,
+                $_query,
+                $_count,
+                $_result = [],
+                $_error = false;
+
+        public function __construct(){
+            try{
+                $this->_pdo = new PDO("mysql:host=" . Config::get('mysql/host') . ";dbname=" . Config::get('mysql/dbName'), Config::get('mysql/username'), Config::get('mysql/password'));
+            }catch(PDOException $e){
+                die($e->getMessage());
+            }
+        }
+
+        // checks if the DB class has been instanciated
+        public static function getInstance(){
+            if(!isset(self::$_instance)){
+                self::$_instance = new Db;
+            }
+            return self::$_instance;
+        }
+
+        // Method to query the database
+        public function query($sql, $params = []){
+            $this->_error = false;
+            if($this->_query = $this->_pdo->prepare($sql)){
+                $i = 1;
+                foreach($params as $param){
+                    $this->_query->bindValue($i, $param);
+                    $i++;
+                }
+                if($this->_query->execute()){
+                    $this->_count = $this->_query->rowCount();
+                    $this->_result = $this->_query->fetchAll(PDO::FETCH_OBJ);
+                }else{
+                    $this->_error = true;
+                }
+            }
+            return $this;
+        }
+
+        // Method to get data from the database
+        public function get($table, $where = []){
+            $sql = "SELECT * FROM `{$table}` WHERE `{$where[0]}` {$where[1]} ?";
+            if(!$this->query($sql, [$where[2]])->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        // Method to get datas from the database where two conditions are satisfied e.g - SELECT * FROM table WHERE 'id' = 1 AND 'COUNTRY' = 'Nigeria'
+        public function getAnd($table, $where = [], $andWhere = []){
+            $sql = "SELECT * FROM `{$table}` WHERE `{$where[0]}` {$where[1]} ? AND `{$andWhere[0]}` {$andWhere[1]} ?";
+            if(!$this->query($sql, [$where[2], $andWhere[2]])->error()){
+                return $this;    
+            }
+            return false;
+        }
+
+        // Method to get datas from the database where two conditions are satisfied e.g - SELECT * FROM table WHERE 'id' = 1 AND 'COUNTRY' = 'Nigeria' AND 'state' = 'Niger'
+        public function getDoubleAnd($table, $where = [], $firstAnd = [], $secondAnd = []){
+            $sql = "SELECT * FROM `{$table}` WHERE `{$where[0]}` {$where[1]} ? AND `{$firstAnd[0]}` {$firstAnd[1]} ? AND `{$secondAnd[0]}` {$secondAnd[1]} ?";
+            if(!$this->query($sql, [$where[2], $firstAnd[2], $secondAnd[2]])->error()){
+                return $this;    
+            }
+            return false;
+        }
+
+        public function getAndOrderLimit($table, $where = [], $andWhere = [], $order = 'id', $direction = 'ASC', $limit = ''){
+            $sql = "SELECT * FROM `{$table}` WHERE `{$where[0]}` {$where[1]} ? AND `{$andWhere[0]}` {$andWhere[1]} ? ORDER BY $order $direction LIMIT $limit";
+            if(!$this->query($sql, [$where[2], $andWhere[2]])->error()){
+                return $this;    
+            }
+            return false;
+        }
+
+        public function getAndOrderLimitOffset($table, $where = [], $andWhere = [], $order = 'id', $direction = 'ASC', $limit = '', $offset = 0){
+            $sql = "SELECT * FROM `{$table}` WHERE `{$where[0]}` {$where[1]} ? AND `{$andWhere[0]}` {$andWhere[1]} ? ORDER BY $order $direction LIMIT $limit OFFSET $offset";
+            if(!$this->query($sql, [$where[2], $andWhere[2]])->error()){
+                return $this;    
+            }
+            return false;
+        }
+
+        // Method to get data from the database with limit e.g - SELECT * FROM table WHERE 'id' = 1 LIMIT 10;
+        public function getLimit($table, $where = [], $limit){
+            $sql = "SELECT * FROM `{$table}` WHERE `{$where[0]}` {$where[1]} ? LIMIT $limit";
+            if(!$this->query($sql, [$where[2]])->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        // Method to get data from the database by order e.g - SELECT * FROM table WHERE 'id' = 1 ORDER BY 'timeRegistered' 'ASC'
+        public function getOrder($table, $where = [], $order = 'id', $direction = 'ASC'){
+            $sql = "SELECT * FROM `{$table}` WHERE `{$where[0]}` {$where[1]} ? ORDER BY $order $direction";
+            if(!$this->query($sql, [$where[2]])->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        // Method to get data from the database by order with limit e.g - SELECT * FROM table WHERE 'id' = 1 ORDER BY 'timeRegistered' 'ASC' LIMIT 10
+        public function getOrderLimit($table, $where = [], $order = 'id', $direction = 'ASC', $limit = ''){
+            $sql = "SELECT * FROM `{$table}` WHERE `{$where[0]}` {$where[1]} ? ORDER BY $order $direction LIMIT $limit";
+            if(!$this->query($sql, [$where[2]])->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        public function getOrderLimitOffset($table, $where = [], $order = 'id', $direction = 'ASC', $limit = '', $offset = 0){
+            $sql = "SELECT * FROM `{$table}` WHERE `{$where[0]}` {$where[1]} ? ORDER BY $order $direction LIMIT $limit OFFSET $offset";
+            if(!$this->query($sql, [$where[2]])->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        //Method to select all from database
+        public function selectAll($table){
+            $sql = "SELECT * FROM {$table}";
+            if(!$this->query($sql, [])->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        //Method to select from database with Limit
+        public function selectLimit($table, $limit){
+            $sql = "SELECT * FROM {$table} LIMIT {$limit}";
+            if(!$this->query($sql, [])->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        //Method to select from database by order e.g - SELECT * FROM table ORDER BY 'timeRegistered' 'ASC'
+        public function selectOrder($table, $order = 'id', $direction = 'ASC'){
+            $sql = "SELECT * FROM {$table} ORDER BY $order $direction";
+            if(!$this->query($sql, [])->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        //Method to select from database by order with limit e.g - SELECT * FROM table ORDER BY 'timeRegistered' 'ASC' LIMIT 10
+        public function selectOrderLimit($table, $order = 'id', $direction = 'ASC', $limit = ''){
+            $sql = "SELECT * FROM {$table} ORDER BY $order $direction LIMIT {$limit}";
+            if(!$this->query($sql, [])->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        // Method to search the database
+        public function search($table, $like, $fields = [], $order, $direction){
+            $statement = '';
+            $i = 1;
+            foreach($fields as $field){
+                $statement .= "`{$field}` LIKE '%{$like}%' ";
+                if($i < count($fields)){
+                    $statement .= 'OR ';
+                }
+                $i++;
+            }
+            $sql = "SELECT * FROM `{$table}` WHERE {$statement} ORDER BY $order $direction";
+            if(!$this->query($sql, [])->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        public function searchAnd($table, $like, $fields = [], $and = [], $order, $direction){
+            $statement = '';
+            $i = 1;
+            foreach($fields as $field){
+                $statement .= "`{$field}` = '{$like}' AND `{$and[0]}` {$and[1]} '{$and[2]}' ";
+                if($i < count($fields)){
+                    $statement .= 'OR ';
+                }
+                $i++;
+            }
+            $sql = "SELECT * FROM `{$table}` WHERE {$statement} ORDER BY $order $direction";
+            if(!$this->query($sql, [])->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        public function selectCount($table, $where = []){
+            $sql = "SELECT COUNT(*) as count FROM {$table} WHERE `{$where[0]}` {$where[1]} '{$where[2]}'";
+            if(!$this->query($sql, [])->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        public function selectCountAnd($table, $where = [], $andWhere = []){
+            $sql = "SELECT COUNT(*) as count FROM {$table} WHERE `{$where[0]}` {$where[1]} '{$where[2]}' AND `{$andWhere[0]}` {$andWhere[1]} '{$andWhere[2]}'";
+            if(!$this->query($sql, [])->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        // Method to delete from the database
+        public function delete($table, $where = []){
+            $sql = "DELETE FROM `{$table}` WHERE `{$where[0]}` {$where[1]} ?";
+            if(!$this->query($sql, [$where[2]])->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        public function truncate($table){
+            $sql = "TRUNCATE `{$table}`";
+            if(!$this->query($sql)->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        // Method to insert into the database
+        public function insert($table, $values = []){
+            $keys = array_keys($values);
+            $i = 1;
+            $value = '';
+            $param = '';
+            foreach($values as $key => $val){
+                $value .= $val;
+                $param .= '?';
+                if($i < count($values)){
+                    $value .= ', ';
+                    $param .= ', ';
+                }
+                $i++;
+            }
+            $sql = "INSERT INTO $table (`" . implode('`, `', $keys) . "`) VALUES ({$param})";
+            if(!$this->query($sql, $values)->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        // Method to update the database
+        public function update($table, $where = [], $fields = []){
+            $i = 1;
+            $column = '';
+            $values = '';
+            foreach($fields as $col => $value){
+                $column .= "$col = ?";
+                $values .= $value;
+                if($i < count($fields)){
+                    $column .= ', ';
+                    $values .= ', ';
+                }
+                $i++;
+            }
+            $sql = "UPDATE {$table} SET {$column} WHERE {$where[0]} {$where[1]} {$where[2]}";
+            if(!$this->query($sql, $fields)->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        // Method that returns the count after a database is being queried
+        public function count(){
+            return $this->_count;
+        }
+        // Method that returns the result after a database is being queried this method will only return the first result
+        public function result(){
+            return $this->_result[0];
+        }
+        // Method that returns the result after a database is being queried this method will return all the results
+        public function resultAll(){
+            return $this->_result;
+        }
+        // Method that returns the errors encountered while quering a database
+        public function error(){
+            return $this->_error;
+        }
+    }

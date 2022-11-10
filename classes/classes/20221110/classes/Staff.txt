@@ -1,0 +1,98 @@
+<?php
+    include $cdn . '/includes/check.txt';
+    class Staff{
+        private $user;
+        private $data = [];
+
+        public function __construct(){
+            $this->user = new User;
+        }
+
+        public function haveAccess($class, $subjects = null){
+            $this->data = [];
+            if($this->user->find('staff', ['regNo', '=', Session::get(Config::get('session/sessionName'))])){
+                $accessPermission = $this->user->data()->accessPermission;
+                if($accessPermission = json_decode($accessPermission, true)){
+                    if(array_key_exists($class, $accessPermission)){
+                        if($subjects != null){
+                            foreach($subjects as $subject){
+                                if(array_key_exists($subject, $accessPermission[$class])){
+                                        $this->data[] = $subject;
+                                } else {
+                                    return false;
+                                }
+                            }  
+                            return $this;                      
+                        } else {
+                            return $this;
+                        }
+                    } else {
+                        return false;
+                    }
+                }
+            }
+            return false;
+        }
+
+        public function isClassTeacher($class, $staffRegNo = null){
+            if($this->user->find('classes', ['class', '=', $class])){
+                if($teachers = json_decode($this->user->data()->classTeacherId, true)){
+                    foreach($teachers as $teacher => $value){
+                        if($staffRegNo == null){
+                            if($teacher == Session::get(Config::get('session/sessionName'))){
+                                return true;
+                            }
+                        } else {
+                            if($teacher == $staffRegNo){
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+            return false;
+        }
+
+        public function isAClassTeacher(){
+            if($this->user->SelectAll('classes')){
+                foreach($this->user->dataAll() as $data){
+                    if($teachers = json_decode($data->classTeacherId, true)){
+                        foreach($teachers as $teacher => $value){
+                            if($teacher == Session::get(Config::get('session/sessionName'))){
+                                $info[$data->class] = [
+                                    'class' => $data->class,
+                                    'classTeacherName' => $data->classTeacher,
+                                    'classTeacherId' => $data->classTeacherId
+                                ];
+                            }
+                        }
+                    }
+
+                }
+                return isset($info) ? $info : false;
+            }
+            return false;
+        }
+
+        public function getClassTeacher($class){
+            if($this->user->find('classes', ['class', '=', $class])){
+                return $classTeacher = json_decode($this->user->data()->classTeacherId, true);
+            }
+        }
+
+        public function getStaffsWithPaymentAccess(){
+            $staffList = [];
+            if($this->user->selectAll('staff_with_payment_access')){
+                foreach($this->user->dataAll() as $object => $staff){
+                    $staffList[] = $staff->regNo;
+                }
+            }
+            return $staffList;
+        }
+
+        public function data(){
+            return $this->data;
+        }
+
+    }

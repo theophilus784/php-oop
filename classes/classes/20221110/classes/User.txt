@@ -1,0 +1,335 @@
+<?php
+    include $cdn . '/includes/check.txt';
+    include $cdn . '/includes/check.txt';
+    class User{
+        private $_db,
+                $_data,
+                $_isLoggedIn,
+                $_error;
+
+        public function __construct(){
+            //Creates an instance of the database class
+            $this->_db = Db::getinstance(); 
+           
+            // Checks if the user is already logged in
+            if(Session::exists(Config::get('session/sessionName'))){
+                $this->_isLoggedIn = true;
+            } else {
+                $this->_isLoggedIn = false;
+            }
+        }
+
+        // Method that registers the user
+        public function insert($table, $fields){
+            $this->_error = null;
+            if(!$this->_db->insert($table, $fields)->error()){
+                return $this;
+            } else {
+                $this->addError("There was an error registering user!");
+            }
+        }
+
+        // Method to get datas from the database
+        public function find($table, $where = []){
+            $this->_db->get($table, [$where[0], $where[1], $where[2]]);
+            if($this->_db->count()){
+                return $this->_data = $this->_db->resultAll();
+            }
+            return false;
+        }
+
+        // Method to get datas from the database where two conditions are satisfied e.g - SELECT * FROM table WHERE 'id' = 1 AND 'COUNTRY' = 'Nigeria'
+        public function findAnd($table, $where = [], $whereAnd = []){
+            $this->_db->getAnd($table, [$where[0], $where[1], $where[2]], [$whereAnd[0], $whereAnd[1], $whereAnd[2]]);
+            if($this->_db->count()){
+                return $this->_data = $this->_db->resultAll();
+            }
+            return false;
+        }
+
+        // Method to get datas from the database where three conditions are satisfied e.g - SELECT * FROM table WHERE 'id' = 1 AND 'COUNTRY' = 'Nigeria' AND 'STATE' = 'Niger'
+        public function findDoubleAnd($table, $where = [], $firstAnd = [], $secondAnd = []){
+            $this->_db->getAnd($table, [$where[0], $where[1], $where[2]], [$firstAnd[0], $firstAnd[1], $firstAnd[2]], [$secondAnd[0], $secondAnd[1], $secondAnd[2]]);
+            if($this->_db->count()){
+                return $this->_data = $this->_db->resultAll();
+            }
+            return false;
+        }
+
+        public function findAndOrderLimit($table, $where = [], $whereAnd = [], $order, $direction, $limit){
+            $this->_db->getAndOrderLimit($table, [$where[0], $where[1], $where[2]], [$whereAnd[0], $whereAnd[1], $whereAnd[2]], $order, $direction, $limit);
+            if($this->_db->count()){
+                return $this->_data = $this->_db->resultAll();
+            }
+            return false;
+        }
+
+        public function findAndOrderLimitOffset($table, $where = [], $whereAnd = [], $order, $direction, $limit, $offset){
+            $this->_db->getAndOrderLimitOffset($table, [$where[0], $where[1], $where[2]], [$whereAnd[0], $whereAnd[1], $whereAnd[2]], $order, $direction, $limit, $offset);
+            if($this->_db->count()){
+                return $this->_data = $this->_db->resultAll();
+            }
+            return false;
+        }
+
+        // Method to get datas from the database with limit e.g - SELECT * FROM table WHERE 'id' = 1 LIMIT 10;
+        public function findLimit($table, $where = [], $limit){
+            $this->_db->getLimit($table, [$where[0], $where[1], $where[2]], $limit);
+            if($this->_db->count()){
+                return $this->_data = $this->_db->resultAll();
+            }
+            return false;
+        }
+
+        // Method to get datas from the database with order e.g - SELECT * FROM table WHERE 'id' = 1 ORDER BY 'timeRegistered' 'ASC'
+        public function findOrder($table, $where = [], $order, $direction){
+            $this->_db->getOrder($table, [$where[0], $where[1], $where[2]], $order, $direction);
+            if($this->_db->count()){
+                return $this->_data = $this->_db->resultAll();
+            }
+            return false;
+        }
+
+        // Method to get datas from the database with order and limit e.g - SELECT * FROM table WHERE 'id' = 1 ORDER BY 'timeRegistered' 'ASC' LIMIT 10
+        public function findOrderLimit($table, $where = [], $order, $direction, $limit){
+            $this->_db->getOrderLimit($table, [$where[0], $where[1], $where[2]], $order, $direction, $limit);
+            if($this->_db->count()){
+                return $this->_data = $this->_db->resultAll();
+            }
+            return false;
+        }
+
+        public function findOrderLimitOffset($table, $where = [], $order, $direction, $limit, $offset){
+            $this->_db->getOrderLimitOffset($table, [$where[0], $where[1], $where[2]], $order, $direction, $limit, $offset);
+            if($this->_db->count()){
+                return $this->_data = $this->_db->resultAll();
+            }
+            return false;
+        }
+
+        // Method to select all from the database
+        public function selectAll($table){
+            if(!$this->_db->selectAll($table)->error()){
+                return $this->_data = $this->_db->resultAll();
+            }
+            return false;
+        }
+
+        // Method to select all from the database with limit
+        public function selectLimit($table, $limit){
+            if(!$this->_db->selectLimit($table, $limit)->error()){
+                return $this->_data = $this->_db->resultAll();
+            }
+            return false;
+        }
+
+        // Method to select all from the database with order e.g - SELECT * FROM table ORDER BY 'timeRegistered' 'ASC'
+        public function selectOrder($table, $order, $direction){
+            if(!$this->_db->selectOrder($table, $order, $direction)->error()){
+                return $this->_data = $this->_db->resultAll();
+            }
+            return false;
+        }
+
+        // Method to select all from the database with order and limit e.g - SELECT * FROM table ORDER BY 'timeRegistered' 'ASC' LIMIT 10
+        public function selectOrderLimit($table, $order, $direction, $limit){
+            if(!$this->_db->selectOrderLimit($table, $order, $direction, $limit)->error()){
+                return $this->_data = $this->_db->resultAll();
+            }
+            return false;
+        }
+
+        // Method to search from the database
+        public function search($table, $like, $fields, $order = 'id', $direction = 'DESC'){
+            if(!$this->_db->search($table, $like, $fields, $order, $direction)->error()){
+                return $this->_data = $this->_db->resultAll();
+            }
+            return false;
+        }
+
+        public function searchAnd($table, $like, $fields, $and, $order = 'id', $direction = 'DESC'){
+            if(!$this->_db->searchAnd($table, $like, $fields, $and, $order, $direction)->error()){
+                return $this->_data = $this->_db->resultAll();
+            }
+            return false;
+        }
+
+        public function selectCount($table, $where = []){
+            if(!$this->_db->selectCount($table, [$where[0], $where[1], $where[2]])->error()){
+                return $this->_data = $this->_db->resultAll();
+            }
+            return false;
+        }
+
+        public function selectCountAnd($table, $where = [], $andWhere){
+            if(!$this->_db->selectCountAnd($table, [$where[0], $where[1], $where[2]], [$andWhere[0], $andWhere[1], $andWhere[2]])->error()){
+                return $this->_data = $this->_db->resultAll();
+            }
+            return false;
+        }
+
+        // Method to log a user in
+        public function login($user, $password , $rememberMe = false, $table = 'students'){
+            $this->_error = null;
+            if($this->find($table, ['regNo', '=', $user])){
+                if(password_verify(sanitize($password), $this->data()->password)){
+                    // Checks if a user asked to be remembered, if yes creates a cookie and stores it in the database
+                    if($rememberMe){
+                        if ($this->find('users_session', ['user_id', '=', $user])){
+                            $remember = $this->data()->session_hash;
+                        } else {
+                            $remember = Hash::unique();
+                            $this->_db->insert('users_session', [
+                                'user_id' => sanitize($user),
+                                'session_hash' => sanitize($remember)
+                            ]);
+                        }
+                        Cookie::set(Config::get('cookie/remember/name'), $remember, Config::get('cookie/remember/expiry'));
+                        Cookie::set('rememberTable', $table, Config::get('cookie/remember/expiry'));
+                    }
+                    return $this;
+                } else {
+                    $this->addError("Wrong password!");
+                }
+            } else {
+                $this->addError("No user with this registration number!");
+            }
+        }
+
+        // Method to log a user out
+        public function logout(){
+            $this->_db->delete('users_session', ['user_id', '=', Session::get(Config::get('session/sessionName'))]);
+            Cookie::delete(Config::get('cookie/remember/name'));
+            Cookie::delete('rememberTable');
+            Session::delete(Config::get('session/sessionName'));
+        }
+
+        // Method to update the details of a user
+        public function update($table, $where, $fields){
+            if(!$this->_db->update($table, $where, $fields)->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        // Method to delete from the database
+        public function delete($table, $where){
+            if(!$this->_db->delete($table, $where)->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        public function truncate($table){
+            if(!$this->_db->truncate($table)->error()){
+                return $this;
+            }
+            return false;
+        }
+
+        //method th check if the user has a particular permisson or not
+        public function hasPermission($role, $table = 'admin'){
+            if($this->find($table, ['regNo', '=', Session::get(Config::get('session/sessionName'))])){
+                $permission = $this->data()->permission;          
+                if($permission == $role){
+                    return true;
+                }
+            }
+            return false;           
+        }
+
+        public function hasAccessToPayments($staffId){
+            if($this->find('staff_with_payment_access', ['regNo', '=', $staffId])){
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        // Method to upload a picture 
+        public function uploadDocument($picture, $pictureFolder, $id){
+            $this->_error = null;
+            if($picture['name'] != null){
+
+                $pictureName = $picture['name'];
+                $pictureType = $picture['type'];
+                $pictureTmpName = $picture['tmp_name'];
+                $pictureSize = $picture['size'];
+                $pictureError = $picture['error'];
+
+                $allowedExts = ['jpg', 'jpeg', 'png', 'gif'];
+                $pictureExtType = explode('/', $pictureType);
+                $pictureExt = strtolower($pictureExtType[1]);
+
+                if(!in_array($pictureExt, $allowedExts)){
+                    $this->addError('Unsupported format! document must be in .jpg or .png format');
+                } else if($pictureError != 0){
+                    $this->addError('There was an error uploading document!');
+                } else {
+                    if($pictureSize > '4194304‬'){
+                        $compressedPicture = compressPicture($pictureTmpName, 12, $id);
+                    } else if($pictureSize > '3145728'){
+                        $compressedPicture = compressPicture($pictureTmpName, 15, $id);
+                    } else if($pictureSize > '2097152'){
+                        $compressedPicture = compressPicture($pictureTmpName, 20, $id);
+                    } else if($pictureSize > '1572864‬'){
+                        $compressedPicture = compressPicture($pictureTmpName, 25, $id);
+                    } else if($pictureSize > '1048576‬'){
+                        $compressedPicture = compressPicture($pictureTmpName, 30, $id);
+                    } else if($pictureSize > '734003'){
+                        $compressedPicture = compressPicture($pictureTmpName, 50, $id);
+                    } else if($pictureSize > '524288‬'){
+                        $compressedPicture = compressPicture($pictureTmpName, 70, $id);
+                    } else {
+                        $compressedPicture = compressPicture($pictureTmpName, 90, $id);
+                    }
+                    $picturePath = $pictureFolder . '/' . $id . '.jpg';
+                    $movePicture = rename($compressedPicture, $picturePath);
+                    unset($pictureTmpName);
+                    if(!$movePicture){
+                        $this->addError('There was an error uploading document!');
+                    } else {
+                        return $this;
+                    }
+                    return false;
+                }
+            }
+        }
+        
+        // Method to get a particular list from the from the database
+        public function getList($table, $field, $order = 'id', $direction = 'DESC'){
+            $lists = [];
+            if($itemLists = $this->selectOrder($table, $order, $direction)){
+                foreach($itemLists as $key => $list){
+                    $lists[] = $list->$field;
+                }
+            }
+            return $lists;
+        }
+
+        // Method that returns the first result from a database query
+        public function data(){
+            return $this->_data[0];
+        }
+
+        // Method that returns all the results from a database query
+        public function dataAll(){
+            return $this->_data;
+        }
+
+        // Method to return the logged in status of a user
+        public function isLoggedIn(){
+            return $this->_isLoggedIn;
+        }
+
+        // Method to add an error to the error array
+        private function addError($errMsg){
+            $this->_error[] = $errMsg;
+        }
+
+        // Method that returns the error array
+        public function error(){
+            return $this->_error;
+        }
+
+    }

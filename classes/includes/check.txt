@@ -1,0 +1,7 @@
+<?php
+    $allowedUrls = ['127.0.0.1', 'heraldacademy.sch.ng'];
+    $url = $_SERVER['HTTP_HOST'];
+    if(!in_array($url, $allowedUrls)){
+        include $cdn . '/includes/unauthorised.txt';
+        exit();
+    }

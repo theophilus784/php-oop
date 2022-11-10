@@ -1,0 +1,5 @@
+<?php
+spl_autoload_register(function($className){
+    global $cdn;
+    include_once $cdn . 'classes/20221110/classes/' . $className.'.txt';
+}); 

@@ -1,0 +1,13 @@
+<?php
+    include $cdn . '/includes/check.txt';
+    class Hash{
+        // Function to hash a string
+        public static function create($string){
+            return password_hash($string, PASSWORD_DEFAULT);
+        }
+
+        // Function that creates a unique id
+        public static function unique(){
+            return self::create(uniqid());
+        }
+    }

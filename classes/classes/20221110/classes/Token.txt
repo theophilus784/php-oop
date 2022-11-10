@@ -1,0 +1,17 @@
+<?php
+    include $cdn . '/includes/check.txt';
+    class Token{
+        // Function to generate a unique token
+        public static function generate(){
+            return Session::set(Config::get('session/tokenName'), md5(uniqid()));
+        }
+
+        // Function to validate a token
+        public static function check($token){
+            if(Session::exists(Config::get('session/tokenName')) && $token === Session::get(Config::get('session/tokenName'))){
+                Session::delete($token);
+                return true;
+            }
+            return false;
+        }
+    }

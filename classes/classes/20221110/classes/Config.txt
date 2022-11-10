@@ -1,0 +1,18 @@
+<?php
+include $cdn . '/includes/check.txt';
+// Class Config to get the configuration details stored in the $GLOBALS array
+class Config{
+    public static function get($path = null){
+        if($path){
+            $config = $GLOBALS['config'];
+            $bits = explode('/', $path);
+            foreach($bits as $bit){
+                if(isset($config[$bit])){
+                    $config = $config[$bit];
+                }
+            }
+            return $config;
+        }
+        return false;
+    }
+}

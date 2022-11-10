@@ -1,0 +1,56 @@
+<?php
+    include $cdn . '/includes/check.txt';
+    // Class Validation to validate a form
+    class Validation{
+        private $_db,
+                $_passed,
+                $_error = [];
+        public function __construct(){
+            $this->_db = Db::getInstance();
+        }
+        public function validate($items = []){
+            // Loops through the different fields and ensures the user satisfies the given condition 
+            foreach($items as $item => $rules){
+                $value = trim(Input::name($item));
+                $displayName = $rules['displayName'];
+                if(isset($rules['required']) && empty($value)){
+                    $this->addError("$displayName cannot be empty!");
+                } else if(isset($rules['max']) && (strlen($value) > $rules['max'])){
+                    $this->addError("$displayName must be a maximum of {$rules['max']} characters!");
+                } else if(isset($rules['min']) && (strlen($value) < $rules['min'])){
+                    $this->addError("$displayName must be a minimum of {$rules['min']} characters!");
+                } else if(isset($rules['type']) && $rules['type'] == 'email' && !filter_var($value, FILTER_VALIDATE_EMAIL)){
+                    $this->addError("Invalid $displayName!");
+                } else if(isset($rules['matches']) && $value !== Input::name($rules['matches'])){
+                    $this->addError("{$items[$rules['matches']]['displayName']} mismatch!");
+                } else if(isset($rules['unique'])){
+                    $tableColumn = explode('/', $rules['unique']);
+                    $table = $tableColumn[0];
+                    $column = $tableColumn[1];
+                    $this->_db->get($table, [$column, '=', $value]);
+                    if($this->_db->count()){
+                        $this->addError("$displayName had been registered by another user!");
+                    }
+                }
+            }
+        }
+
+        //Method to add errors to the error array
+        private function addError($errMsg){
+            $this->_error[] = $errMsg;
+        }
+
+        //Method that checks if the validation is passed or not
+        public function passed(){
+            if(empty($this->_error)){
+                return true;
+            }
+            return false;
+        }
+
+        // Method that returns the errors generated
+        public function error(){
+            return $this->_error;
+        }
+
+    }

@@ -1,0 +1,528 @@
+<?php
+    include $cdn . '/includes/check.txt';
+    class Student{
+        private $user;
+        private $data;
+        public function __construct(){
+            $this->user = new User;
+        }
+        public function getResult($regNo, $session, $term){
+            if($this->user->find('results', ['regNo', '=', $regNo])){
+                $results = json_decode($this->user->data()->results, true);
+                if(array_key_exists($session, $results)){
+                    if(array_key_exists($term, $results[$session])){
+                        $result = $results[$session][$term]['result'];
+                        return $result;
+                    }
+                }
+            }
+            return false;
+        }
+
+        public function getAttributes($class = null){
+            $attributes = [
+                'affective' => [
+                    'punctuality' => "",
+                    'neatness' => "",
+                    'honesty' => "",
+                    'friendliness' => ""
+                ],
+                'psychomoto' => [
+                    'handwriting' => "",
+                    'drawing' => "",
+                    'fluency' => "",
+                    'calculation' => "",
+                    'reading' => ""
+                ]
+            ];
+            return $attributes;
+        }
+         
+        public function getResultAttributes($regNo, $session, $term){
+            if($this->user->find('results', ['regNo', '=', $regNo])){
+                $results = json_decode($this->user->data()->results, true);
+                if(array_key_exists($session, $results)){
+                    if(array_key_exists($term, $results[$session])){
+                        $result = $results[$session][$term]['attributes'];
+                        return $result;
+                    }
+                }
+            }
+            return false;
+        }
+
+        public function getResultInformation($regNo, $session, $term){
+            if($this->user->find('results', ['regNo', '=', $regNo])){
+                $results = json_decode($this->user->data()->results, true);
+                if(array_key_exists($session, $results)){
+                    if(array_key_exists($term, $results[$session])){
+                        $result = $results[$session][$term];
+                        return $result;
+                    }
+                }
+            }
+            return false;
+        }
+
+        public function displayPosition($class, $position, $numInClass){
+            $threePos = ['senior_secondary'];
+            $halfPos = ['nursery', 'primary'];
+            if(in_array($this->section($class), $threePos)){
+                $positionArray = ['1', '2', '3'];
+                if(in_array($position, $positionArray)){
+                    return ordinalSuffix($position);
+                } else {
+                    return '';
+                }
+            } else if($this->classAlias($class) == 'jss_1'){
+                $checkPos = ($numInClass / 2);
+                if($position <= $checkPos){
+                    return ordinalSuffix($position);
+                } else {
+                    return '';
+                }
+            } else if($this->classAlias($class) == 'jss_2' || $this->classAlias($class) == 'jss_3'){
+                $checkPos = ($numInClass - $position);
+                if($checkPos >= 10){
+                    return ordinalSuffix($position);
+                } else {
+                    return '';
+                }
+            } else if(in_array($this->section($class), $halfPos)) {
+                $checkPos = ($numInClass / 2);
+                if($position <= $checkPos){
+                    return ordinalSuffix($position);
+                } else {
+                    return '';
+                }
+            } else {
+                return ordinalSuffix($position);
+            }
+        }
+        
+        public function grade($score){
+            if($score >= 85 && $score <= 100){
+                return 'Excellent';
+            } else if ($score >= 75 && $score <= 84){
+                return 'Very Good';
+            } else if ($score >= 60 && $score <= 74){
+                return 'Good';
+            } else if ($score >= 50 && $score <= 59){
+                return 'Pass';
+            } else if ($score >= 40 && $score <= 49){
+                return 'Weak';
+            } else if ($score >= 0 && $score <= 39){
+                return 'Fail';
+            }
+            return false;
+        }
+
+        public function classTeachersRemark($percentageScored){
+            if($percentageScored >= 80.00 && $percentageScored <= 100){
+                return 'An Excellent performance, keep it up';
+            } else if ($percentageScored >= 60.00 && $percentageScored <= 79.99){
+                return 'A very good performance, try harder next term';
+            } else if ($percentageScored >= 50.00 && $percentageScored <= 59.99){
+                return 'Good performance, try harder next term';
+            }  else if ($percentageScored >= 40.00 && $percentageScored <= 49.99){
+                return 'Fair result, you can do better';
+            } else if ($percentageScored >= 0.00 && $percentageScored <= 39.99){
+                return 'Poor performance, you need to buckle up';
+            }
+            return false;
+        }
+
+        public function headTeachersRemark($percentageScored){
+            if($percentageScored >= 80.00 && $percentageScored <= 100){
+                return 'An Excellent performance, keep it up';
+            } else if ($percentageScored >= 60.00 && $percentageScored <= 79.99){
+                return 'A very good performance, try harder next term';
+            } else if ($percentageScored >= 50.00 && $percentageScored <= 59.99){
+                return 'Good performance, try harder next term';
+            }  else if ($percentageScored >= 40.00 && $percentageScored <= 49.99){
+                return 'Fair result, you can do better';
+            } else if ($percentageScored >= 0.00 && $percentageScored <= 39.99){
+                return 'Poor performance, you need to buckle up';
+            }
+            return false;
+        }
+
+        public function getClassSubjects($class){
+            if($this->user->find('classes', ['class', '=', $class])){
+                $subjects = json_decode($this->user->data()->classSubjects);
+                return $subjects;
+            }
+            return false;
+        }
+
+        public function section($class){
+            if($this->user->find('classes', ['class', '=', $class])){
+                return $this->user->data()->section;
+            } else {
+                return false;
+            }
+        }
+
+        public function classAlias($class){
+            if($this->user->find('classes', ['class', '=', $class])){
+                return $this->user->data()->classAlias;
+            } else {
+                return false;
+            }
+        }
+
+        public function continuousAssessmentBySubject($class, $subject){
+            $this->data = [];
+            if($this->user->find('continuous_assessment', ['class', '=', $class])){
+                $students = $this->user->dataAll();
+                foreach($students as $data => $student){
+                    $regNo = $student->regNo;
+                    $firstname = $student->firstname;
+                    $middlename = $student->middlename;
+                    $lastname = $student->lastname;
+                    $class = $student->class;
+                    $continuousAssessment = json_decode($student->continuousAssessment, true);
+                    
+                    if($subjectScores = $continuousAssessment[$subject]){
+                        $this->data[$regNo] = [
+                            'regNo' => $regNo,
+                            'name' => $lastname . ' ' . $firstname . ' ' . $middlename,
+                            'class' => $class,
+                            'ca 1' => $subjectScores['ca 1'],
+                            'ca 2' => $subjectScores['ca 2'],
+                            'exam' => $subjectScores['exam']
+                        ]; 
+                    }
+                }
+                return $this;
+            }
+            return false;
+        }
+        
+        public function attributes($class){
+            $this->data = [];
+            if($this->user->find('continuous_assessment', ['class', '=', $class])){
+                $students = $this->user->dataAll();
+                foreach($students as $data => $student){
+                    $regNo = $student->regNo;
+                    $firstname = $student->firstname;
+                    $middlename = $student->middlename;
+                    $lastname = $student->lastname;
+                    $class = $student->class;
+                    $daysPresent = $student->daysPresent;
+                    $attributes = json_decode($student->attributes, true);
+
+                    $this->data[$regNo] = [
+                        'regNo' => $regNo,
+                        'name' => $lastname . ' ' . $firstname . ' ' . $middlename,
+                        'class' => $class,
+                        'daysPresent' => $daysPresent,
+                        'affective' => [
+                            'punctuality' => $attributes['affective']['punctuality'],
+                            'neatness' => $attributes['affective']['neatness'],
+                            'honesty' => $attributes['affective']['honesty'],
+                            'friendliness' => $attributes['affective']['friendliness'],
+                        ],
+                        'psychomoto' => [
+                            'handwriting' => $attributes['psychomoto']['handwriting'],
+                            'drawing' => $attributes['psychomoto']['drawing'],
+                            'fluency' => $attributes['psychomoto']['fluency'],
+                            'calculation' => $attributes['psychomoto']['calculation'],
+                            'reading' => $attributes['psychomoto']['reading'],
+
+                        ]
+                    ]; 
+                }
+                return $this;
+            }
+            return false;
+        }
+        
+        public function continuousAssessmentByStudent($regNo){
+            $this->data = [];
+            if($this->user->find('continuous_assessment', ['regNo', '=', $regNo])){
+                $students = $this->user->dataAll();
+                foreach($students as $data => $student){
+                    $regNo = $student->regNo;
+                    $firstname = $student->firstname;
+                    $middlename = $student->middlename;
+                    $lastname = $student->lastname;
+                    $class = $student->class;
+                    $continuousAssessment = json_decode($student->continuousAssessment, true);
+                    
+                    if($continuousAssessment){
+                        $this->data['regNo'] = $regNo;
+                        $this->data['name'] = $lastname . ' ' . $firstname . ' ' . $middlename;
+                        $this->data['class'] = $class;
+                        foreach($continuousAssessment as $subject => $scores){
+                            $this->data['ca'][$subject] = [
+                                'ca 1' => $continuousAssessment[$subject]['ca 1'],
+                                'ca 2' => $continuousAssessment[$subject]['ca 2'],
+                                'exam' => $continuousAssessment[$subject]['exam'],
+                            ]; 
+                        }
+                    }
+                }
+                return $this;
+            }
+            return false;
+        }
+
+        public function overallAssessment($class, $session, $term){
+            if($this->user->selectAll('current_academic_session')){
+                $currentSession = $this->user->data()->session;
+                $currentTerm = $this->user->data()->term;
+
+                if($session != $currentSession || $term != $currentTerm){
+                    $classCA = [];
+                    if($this->user->findAnd('class_history', ['session', '=', $session], ['term', '=', $term])){
+                        $ca = json_decode($this->user->data()->classAssessment, true);
+                        $classCA = $ca[$class];
+                        return $classCA;
+                    } else {
+                        return false;
+                    }
+
+                } else {
+                    if($this->user->find('continuous_assessment', ['class', '=', $class])){
+                        $classCA = [];
+                        foreach($this->user->dataAll() as $student){
+                            $regNo = $student->regNo;
+                            $firstname = $student->firstname;
+                            $middlename = $student->middlename;
+                            $lastname = $student->lastname;
+                            $ca = json_decode($student->continuousAssessment, true);
+                            $classCA[$regNo] = [
+                                'regNo' => $regNo,
+                                'firstname' => $firstname,
+                                'middlename' => $middlename,
+                                'lastname' => $lastname,
+                                'ca' => $ca,
+                            ];
+                        }
+                        return $classCA;
+                    }
+                }
+            }
+            
+            return false;
+        }
+
+        public function studentTermlyClass($regNo, $session, $term, $table = 'students'){
+            if($this->user->find('class_record', ['regNo', '=', $regNo])){
+                $classRecord = json_decode($this->user->data()->classRecord, true);
+                if(isset($classRecord[$session])){
+                    if(isset($classRecord[$session][$term])){
+                        $class = $classRecord[$session][$term];
+                        return $class;
+                    } else {
+                        if($this->user->find($table, ['regNo', '=', $regNo])){
+                            $class = $this->user->data()->class;
+                            return $class;
+                        }
+                    }
+                } else {
+                    if($this->user->find($table, ['regNo', '=', $regNo])){
+                        $class = $this->user->data()->class;
+                        return $class;
+                    }
+                }
+            } else {
+                if($this->user->find($table, ['regNo', '=', $regNo])){
+                    $class = $this->user->data()->class;
+                    return $class;
+                }
+            }
+            return false;
+        }
+
+
+        public function classFees($regNo, $session, $term, $table = 'students'){
+            if($class = $this->studentTermlyClass($regNo, $session, $term, $table = 'students')){
+                if($this->user->findAnd('fees', ['session', '=', $session], ['term', '=', $term])){
+                    $fees = json_decode($this->user->data()->fees, true);
+                    if(array_key_exists($class, $fees)){
+                        $classFees = $fees[$class];
+                        if($balanceBroughtForward = $this->balanceBroughtForward($regNo, $session, $term)){
+                            $classFees['balance_from_previous_term'] = $balanceBroughtForward;
+                        }
+                        return $classFees;
+                    }
+                } 
+                return false;
+            }
+        }
+
+        public function optionalFees(){
+            $items = [];
+            if($this->user->selectAll('optional_fees')){
+                foreach($this->user->dataAll() as $index => $data){
+                    $items[] = ['id'=> $data->id, 'name'=>$data->name, 'unit_price'=>$data->unit_price];
+                }
+            }
+            return $items;
+        }
+
+        public function balanceBroughtForward($regNo, $session, $term){
+            if($this->user->find('balance_brought_forward', ['regNo', '=', $regNo])){
+                $record = json_decode($this->user->data()->balance, true);
+                if(isset($record[$session][$term])){
+                    return $record[$session][$term];;
+                }
+            }
+            return false;
+        }
+
+
+        public function paymentRecord($regNo, $session, $term, $table = 'students'){
+            if($classFees = $this->classFees($regNo, $session, $term, $table)){
+                if(!$this->user->find('payment_record', ['regNo', '=', $regNo])){
+                    if($this->user->find($table, ['regNo', '=', $regNo])){
+                        $regNo = $this->user->data()->regNo;
+                        $firstname = $this->user->data()->firstname;
+                        $middlename = $this->user->data()->middlename;
+                        $lastname = $this->user->data()->lastname;
+                        $class = $this->user->data()->class;
+                    }
+                    $this->user->insert('payment_record', [
+                        'regNo' => $regNo,
+                        'firstname' => $firstname,
+                        'middlename' => $middlename,
+                        'lastname' => $lastname,
+                        'payments' => json_encode([])
+                    ]);
+                }
+                if($this->user->find('payment_record', ['regNo', '=', $regNo])){
+                    $studentPayments = json_decode($this->user->data()->payments, true);
+                    $studentTermPayment = [];
+
+                    foreach($classFees as $fee => $amount){
+                        if(isset($studentPayments[$session][$term]['fees'][$fee])){
+                            $studentTermPayment[$fee] = [
+                                'paid' => numeric($studentPayments[$session][$term]['fees'][$fee]),
+                                'balance' => numeric($classFees[$fee]) - numeric($studentPayments[$session][$term]['fees'][$fee]),
+                                'surplus' => numeric($studentPayments[$session][$term]['fees'][$fee]) - numeric($classFees[$fee])
+                            ];
+                        } else {
+                            $studentTermPayment[$fee] = [
+                                'paid' => 0,
+                                'balance' => numeric($classFees[$fee]),
+                                'surplus' => 0 - numeric($classFees[$fee])
+                            ];
+                        }
+                    }
+                    if(isset($studentPayments[$session][$term]['fees'])){
+                        foreach($studentPayments[$session][$term]['fees'] as $fee => $amount){
+                            if(!isset($classFees[$fee])){
+                                $studentTermPayment[$fee] = [
+                                    'paid' => numeric($studentPayments[$session][$term]['fees'][$fee]),
+                                    'balance' => 0 - numeric($studentPayments[$session][$term]['fees'][$fee]),
+                                    'surplus' => numeric($studentPayments[$session][$term]['fees'][$fee])
+                                ];
+                            }
+                        }
+                    }
+                    return $studentTermPayment;
+                }
+            }
+            return false;
+        }
+
+        public function paymentStatus($regNo, $session, $term, $table = 'students'){
+            if($paymentRecord = $this->paymentRecord($regNo, $session, $term, $table)){
+                $paid = 0;
+                $balance = 0;
+                $surplus = 0;
+                foreach($paymentRecord as $fee => $data){
+                    $paid += $paymentRecord[$fee]['paid'];
+                    $balance += $paymentRecord[$fee]['balance'];
+                    $surplus += $paymentRecord[$fee]['surplus'];
+                }
+                if($balance == 0){
+                    return 'Payment Complete';
+                } else if($paid == 0) {
+                    return 'No payment has been made';
+                } else if($surplus > 0) {
+                    return 'Surplus payment made';
+                } else if ($paid > 0 && $balance > 0) {
+                    return 'Part payment made';
+                }
+            }
+            return false;
+        }
+
+        public function receivePayment($regNo, $session, $term, $amount, $receivedBy, $table = 'students'){
+            $classFees = $this->classFees($regNo, $session, $term, $table = 'students');
+            if($this->paymentRecord($regNo, $session, $term, $table)){
+                if($this->user->find('payment_record', ['regNo', '=', $regNo])){
+                    $id = $this->user->data()->id;
+                    $payments = json_decode($this->user->data()->payments, true);
+                    if(!isset($payments[$session])){
+                        $payments[$session] = [];
+                    }
+                    if(!isset($payments[$session][$term])){
+                        $payments[$session][$term]['fees'] = [];
+                    }
+                    $remainingAmount = $amount;
+                    foreach($classFees as $fee => $price){
+                        if(!isset($payments[$session][$term]['fees'][$fee])){
+                            $payments[$session][$term]['fees'][$fee] = 0;
+                        }
+                        if($remainingAmount > 0){
+                            if($payments[$session][$term]['fees'][$fee] < $price){
+                                $feeBalance = $price - $payments[$session][$term]['fees'][$fee];
+                                if($remainingAmount > $feeBalance){
+                                    $amountAvailable = $feeBalance;
+                                } else {
+                                    $amountAvailable = $remainingAmount;
+                                }
+                                $payments[$session][$term]['fees'][$fee] += $amountAvailable; 
+                                $remainingAmount -= $amountAvailable;
+                            }
+                        }
+
+                    }
+
+                    $this->setTransactionHistory($regNo, $session, $term, $amount, '', $receivedBy, 'c');
+
+                    $payments = json_encode($payments);
+                    $payments = str_replace('\\', '', $payments);
+                    $this->user->update('payment_record', ['id', '=', $id], [
+                        'payments' => $payments
+                    ]);
+                    return $this;
+                }
+                return false;
+            } 
+            return false;
+        }
+
+        public function receiveOptionalPayment($regNo, $session, $term, $amount, $feeList, $receivedBy){
+            foreach($feeList as $list=>$properties){
+                if($properties['q'] == 0){
+                    unset($feeList[$list]);
+                }
+            }
+            $this->setTransactionHistory($regNo, $session, $term, $amount, json_encode($feeList), $receivedBy, 'o');
+            return true;
+        }
+
+        public function setTransactionHistory($regNo, $session, $term, $amount, $feeList, $receivedBy, $paymentType){
+            $this->user->insert('transaction_history', [
+                'regNo' => $regNo,
+                'session' => $session,
+                'term' => $term,
+                'amount' => $amount,
+                'payment_list' => $feeList,
+                'payment_date' => date('Y-m-d'),
+                'payment_time' => date('H:i:s'),
+                'payment_received_by' => $receivedBy,
+                'type' => $paymentType
+            ]);
+        }
+        public function data(){
+            return $this->data;
+        }    
+    
+    
+    }
